@@ -1,0 +1,7 @@
+rust
+python
+go
+java
+javascript
+typescript
+typst
