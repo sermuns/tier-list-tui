@@ -1,13 +1,14 @@
-use std::io::BufReader;
-
-use color_eyre::{Result, owo_colors::OwoColorize};
+use color_eyre::Result;
 use ratatui::{
     DefaultTerminal, crossterm,
     prelude::*,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, TableState, Wrap},
+    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
 };
+use std::cmp::min;
 
 const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+
+const NUM_TIERS: usize = 7; // FIXME: ...
 
 pub enum Screen {
     StartMenu,
@@ -15,44 +16,117 @@ pub enum Screen {
     UploadingImage,
 }
 
-pub struct TierListItem {
-    text: String,
-    area: Option<Rect>,
+#[derive(Default, Clone, Debug)]
+pub struct Item<'a> {
+    label: Span<'a>,
 }
 
-pub struct App {
+#[derive(Default)]
+pub struct Tier<'a> {
+    letter_span: Span<'a>,
+    items: Vec<Item<'a>>,
+}
+
+pub struct App<'a> {
     pub current_screen: Screen,
     quitting: bool,
-    tier_list_state: TableState,
-    items: Vec<TierListItem>,
+    tiers: [Tier<'a>; NUM_TIERS],
+
+    /// row_idx, item_idx
+    focus: (usize, usize),
+
+    grabbed: Option<Item<'a>>,
+}
+
+enum InputMovement {
+    Up,
+    Down,
+    Left,
+    Right,
+    Top,
+    Bottom,
 }
 
 #[allow(clippy::new_without_default)]
-impl App {
-    /// "toggle" table selection
-    pub fn toggle_table_selection(&mut self) {
-        if self.tier_list_state.selected_column().is_some() {
-            self.tier_list_state.select_cell(None);
+impl App<'_> {
+    fn move_focus(&mut self, movement: InputMovement) {
+        let (row_idx, col_idx) = &mut self.focus;
+
+        match movement {
+            InputMovement::Up => {
+                *row_idx = row_idx.saturating_sub(1);
+            }
+            InputMovement::Down => {
+                if *row_idx >= NUM_TIERS - 1 {
+                    return;
+                }
+                *row_idx += 1;
+            }
+            InputMovement::Top => {
+                *row_idx = 0;
+            }
+            InputMovement::Left => {
+                *col_idx = col_idx.saturating_sub(1);
+            }
+            InputMovement::Right => {
+                *col_idx += 1;
+            }
+            InputMovement::Bottom => {
+                *row_idx = NUM_TIERS - 1; // FIXME:
+            }
+        }
+        let last_idx_in_row = self.tiers[*row_idx].items.len().saturating_sub(1);
+        *col_idx = min(*col_idx, last_idx_in_row);
+    }
+
+    /// if something grabbed, place at focus
+    /// if nothing grabbed, grab focused.
+    fn grab_or_place(&mut self) {
+        let (row_idx, col_idx) = self.focus;
+
+        let items = &mut self.tiers[row_idx].items;
+        if let Some(grabbed) = &mut self.grabbed {
+            if col_idx < items.len() {
+                items.insert(col_idx, grabbed.clone());
+            } else {
+                items.push(grabbed.clone());
+            }
+            self.grabbed = None;
         } else {
-            self.tier_list_state.select_cell(Some((6, 1))); // FIXME: hardcoded...
+            self.grabbed = Some(items.remove(col_idx));
         }
     }
 
     pub fn new() -> Self {
-        let items = std::fs::read_to_string("languages.txt")
+        let mut tiers = [
+            "S".bold().red(),
+            "A".into(),
+            "B".into(),
+            "C".into(),
+            "D".into(),
+            "F".into(),
+            " ".into(),
+        ]
+        .map(|letter_span| Tier {
+            letter_span,
+            ..Default::default()
+        });
+
+        // TODO:
+        tiers[NUM_TIERS - 1].items = std::fs::read_to_string("languages.txt")
             .unwrap()
             .lines()
-            .map(|language_str| TierListItem {
-                text: language_str.to_string(),
-                area: None,
+            .map(|line| Item {
+                label: line.to_owned().into(),
             })
             .collect();
 
         Self {
+            tiers,
             current_screen: Screen::TierList,
             quitting: false,
-            tier_list_state: TableState::new(),
-            items,
+            focus: (NUM_TIERS - 1, 0),
+            grabbed: None,
         }
     }
 
@@ -72,15 +146,21 @@ impl App {
         ])
         .areas(frame.area());
 
-        let footer_block = Block::new()
+        let title_block = Block::new()
             .title_style(Style::default().bold())
+            .title(format!(" {PKG_NAME} "))
             .title_alignment(HorizontalAlignment::Center)
             .borders(Borders::TOP | Borders::BOTTOM)
             .border_type(BorderType::Thick)
             .border_style(Style::default().fg(Color::LightBlue))
             .borders(Borders::TOP);
-        frame.render_widget(footer_block.clone().title(format!(" {PKG_NAME} ")), header);
-        frame.render_widget(footer_block, footer);
+        frame.render_widget(
+            title_block
+                .clone()
+                .title(format!("{:?} | {:?}", self.focus, self.grabbed)),
+            footer,
+        );
+        frame.render_widget(title_block, header);
 
         match self.current_screen {
             Screen::StartMenu => {
@@ -96,36 +176,41 @@ impl App {
                 frame.render_widget(welcome_paragraph, body);
             }
             Screen::TierList => {
-                let tiers = [
-                    "S".on_red(),
-                    "A".into(),
-                    "B".into(),
-                    "C".into(),
-                    "D".into(),
-                    "F".into(),
-                    "".into(),
-                ];
+                let rows = Layout::vertical([Constraint::Fill(1); NUM_TIERS]).split(body);
 
-                const NUM_COLUMNS: usize = 2;
-                let col_constraints = [Constraint::Length(9); NUM_COLUMNS];
-                let row_constraints = [Constraint::Fill(1); 7];
+                for ((row_idx, row_outer_area), tier) in rows.iter().enumerate().zip(&self.tiers) {
+                    let mut items = tier.items.clone();
+                    if let Some(grabbed) = &self.grabbed
+                        && self.focus.0 == row_idx
+                    {
+                        if self.focus.1 <= items.len() {
+                            items.insert(self.focus.1, grabbed.clone());
+                        } else {
+                            items.push(grabbed.clone());
+                        }
+                    }
+                    let areas = Layout::horizontal(
+                        [Constraint::Fill(1)]
+                            .iter()
+                            .chain(vec![Constraint::Length(20); items.len()].iter()),
+                    )
+                    // .flex(Flex::Start)
+                    .split(*row_outer_area);
+                    frame.render_widget(&tier.letter_span, areas[0]);
 
-                let horizontal = Layout::horizontal(col_constraints).spacing(1);
-                let vertical = Layout::vertical(row_constraints).spacing(1);
-
-                let cells = body
-                    .layout_vec(&vertical)
-                    .into_iter()
-                    .flat_map(|row| row.layout_vec(&horizontal));
-                let last_cell = cells.clone().last(); // FIXME: !
-
-                for (cell, letter) in cells.step_by(NUM_COLUMNS).zip(tiers) {
-                    frame.render_widget(letter, cell);
-                }
-
-                for item in &self.items {
-                    frame
-                        .render_widget(item.text.as_str(), item.area.unwrap_or(last_cell.unwrap()));
+                    for ((item_idx, item), area) in
+                        items.iter().enumerate().zip(areas.iter().skip(1))
+                    {
+                        if self.focus == (row_idx, item_idx) {
+                            if self.grabbed.is_some() {
+                                frame.render_widget(item.label.clone().black().on_yellow(), *area);
+                            } else {
+                                frame.render_widget(item.label.clone().on_dark_gray(), *area);
+                            }
+                        } else {
+                            frame.render_widget(&item.label, *area);
+                        }
+                    }
                 }
             }
             _ => todo!(),
@@ -141,25 +226,23 @@ impl App {
             Screen::TierList => match event {
                 Event::Key(key_event) => match key_event.code {
                     KeyCode::Up | KeyCode::Char('k') => {
-                        self.tier_list_state.select_previous();
+                        self.move_focus(InputMovement::Up);
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        self.tier_list_state.select_next();
+                        self.move_focus(InputMovement::Down);
                     }
                     KeyCode::Right | KeyCode::Char('l') => {
-                        self.tier_list_state.select_next_column();
+                        self.move_focus(InputMovement::Right);
                     }
                     KeyCode::Left | KeyCode::Char('h') => {
-                        if let Some(column_idx) = self.tier_list_state.selected_column()
-                            && column_idx > 1
-                        {
-                            self.tier_list_state.select_previous_column();
-                        }
+                        self.move_focus(InputMovement::Left);
                     }
-                    KeyCode::Esc => {
-                        self.tier_list_state.select(None);
+                    KeyCode::Enter | KeyCode::Char(' ') => {
+                        self.grab_or_place();
                     }
                     KeyCode::Char('q') => self.quit(),
+                    KeyCode::End | KeyCode::Char('G') => self.move_focus(InputMovement::Bottom),
+                    KeyCode::Home | KeyCode::Char('g') => self.move_focus(InputMovement::Top),
                     _ => {}
                 },
                 Event::Mouse(mouse_event) => match mouse_event.kind {
