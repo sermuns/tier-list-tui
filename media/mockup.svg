@@ -1,0 +1,60 @@
+<svg class="typst-doc" viewBox="0 0 640 480" width="640pt" height="480pt" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:h5="http://www.w3.org/1999/xhtml">
+    <path class="typst-shape" fill="#262626" fill-rule="nonzero" d="M 0 0v 480 h 640 v -480 Z "/>
+    <g>
+        <g class="typst-group">
+            <g>
+                <path class="typst-shape" fill="#80211b" fill-rule="nonzero" transform="matrix(1 0 0 1 22 22)" d="M 0 0v 66 h 55 v -66 Z "/>
+                <path class="typst-shape" fill="oklab(44.551% 0.06228 0.07056)" fill-rule="nonzero" transform="matrix(1 0 0 1 22 88)" d="M 0 0v 66 h 55 v -66 Z "/>
+                <path class="typst-shape" fill="oklab(49.092% 0.00911 0.07986)" fill-rule="nonzero" transform="matrix(1 0 0 1 22 154)" d="M 0 0v 66 h 55 v -66 Z "/>
+                <path class="typst-shape" fill="oklab(53.634% -0.04405 0.08916)" fill-rule="nonzero" transform="matrix(1 0 0 1 22 220)" d="M 0 0v 66 h 55 v -66 Z "/>
+                <path class="typst-shape" fill="oklab(58.175% -0.09721 0.09846)" fill-rule="nonzero" transform="matrix(1 0 0 1 22 286)" d="M 0 0v 66 h 55 v -66 Z "/>
+                <path class="typst-shape" fill="#121212" fill-rule="nonzero" transform="matrix(1 0 0 1 77 22)" d="M 0 0v 66 h 541 v -66 Z "/>
+                <path class="typst-shape" fill="#121212" fill-rule="nonzero" transform="matrix(1 0 0 1 77 88)" d="M 0 0v 66 h 541 v -66 Z "/>
+                <path class="typst-shape" fill="#121212" fill-rule="nonzero" transform="matrix(1 0 0 1 77 154)" d="M 0 0v 66 h 541 v -66 Z "/>
+                <path class="typst-shape" fill="#121212" fill-rule="nonzero" transform="matrix(1 0 0 1 77 220)" d="M 0 0v 66 h 541 v -66 Z "/>
+                <path class="typst-shape" fill="#121212" fill-rule="nonzero" transform="matrix(1 0 0 1 77 286)" d="M 0 0v 66 h 541 v -66 Z "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 22 21.5)" d="M 0 0v 331 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 77 21.5)" d="M 0 0v 331 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 618 21.5)" d="M 0 0v 331 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 22)" d="M 0 0h 597 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 88)" d="M 0 0h 597 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 154)" d="M 0 0h 597 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 220)" d="M 0 0h 597 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 286)" d="M 0 0h 597 "/>
+                <path class="typst-shape" fill="none" stroke="#808080" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" transform="matrix(1 0 0 1 21.5 352)" d="M 0 0h 597 "/>
+                <g class="typst-text" transform="matrix(1 0 0 -1 46.09 59.01500000000001)">
+                    <use xlink:href="#gEEE9B1F835AC04E93D09BA440EB2B48" x="0" y="0" fill="#e6e6e6" fill-rule="nonzero"/>
+                </g>
+                <g class="typst-text" transform="matrix(1 0 0 -1 46.09 125.015)">
+                    <use xlink:href="#gF2D0ED82577FA344E7CEBECD081AA37D" x="0" y="0" fill="#e6e6e6" fill-rule="nonzero"/>
+                </g>
+                <g class="typst-text" transform="matrix(1 0 0 -1 46.09 191.015)">
+                    <use xlink:href="#g8425444B31491D57E549395F8E2EC22D" x="0" y="0" fill="#e6e6e6" fill-rule="nonzero"/>
+                </g>
+                <g class="typst-text" transform="matrix(1 0 0 -1 46.09 257.015)">
+                    <use xlink:href="#g365371219833813AACF0881C55535613" x="0" y="0" fill="#e6e6e6" fill-rule="nonzero"/>
+                </g>
+                <g class="typst-text" transform="matrix(1 0 0 -1 46.09 323.015)">
+                    <use xlink:href="#g9BF3BEF4EF8ED4B68FD195B9864E8FE6" x="0" y="0" fill="#e6e6e6" fill-rule="nonzero"/>
+                </g>
+            </g>
+        </g>
+    </g>
+    <defs id="glyph">
+        <symbol id="gEEE9B1F835AC04E93D09BA440EB2B48" overflow="visible">
+            <path d="M 0 0m 0.9625 0 h 3.6025 l 1.3639998 1.628 v 1.1055 l -3.938 2.959 v 0.41799974 l 0.7865 1.0065002 h 3.0249999 l -0.13199997 0.91299963 h -3.4155 l -1.3639998 -1.6279998 v -1.1054997 l 3.938 -2.959 v -0.4180001 l -0.7865 -1.0065 h -3.2065 Z "/>
+        </symbol>
+        <symbol id="gF2D0ED82577FA344E7CEBECD081AA37D" overflow="visible">
+            <path d="M 0 0m 1.001 0 h 1.0615 v 2.2 h 2.6950002 v -2.2 h 1.0614996 v 4.8675 l -1.7709999 3.1625 h -1.2759998 l -1.771 -3.1625 Z m 1.0615 3.0085 v 1.5344996 l 1.3475001 2.5465002 l 1.3475001 -2.5355 v -1.5454998 Z "/>
+        </symbol>
+        <symbol id="g8425444B31491D57E549395F8E2EC22D" overflow="visible">
+            <path d="M 0 0m 1.0285 0 h 3.388 l 1.7214999 1.496 v 1.5014999 l -1.408 1.1989999 l 1.0945001 1.0560002 v 1.3034997 l -1.408 1.474 h -3.388 Z m 1.078 0.8085 v 2.9259999 h 1.8370001 l 1.1384997 -1.0725 v -0.8139999 l -1.1384997 -1.0395 Z m 0 3.7344997 v 2.6785002 h 1.8370001 l 0.91849995 -1.0174999 v -0.6160002 l -0.91849995 -1.0450001 Z "/>
+        </symbol>
+        <symbol id="g365371219833813AACF0881C55535613" overflow="visible">
+            <path d="M 0 0m 2.6345 0 h 3.2725 l 0.14849997 0.957 h -2.8545 l -1.5345 2.31 v 1.5344999 l 1.5345 2.2715 h 2.8545 l -0.14849997 0.9569998 h -3.2725 l -2.0240002 -2.8985 v -2.1944997 Z "/>
+        </symbol>
+        <symbol id="g9BF3BEF4EF8ED4B68FD195B9864E8FE6" overflow="visible">
+            <path d="M 0 0m 1.111 0 h 1.067 v 3.289 h 3.113 v 0.8305001 h -3.113 v 3.047 h 3.795 l -0.12650013 0.86349964 h -4.7355 Z "/>
+        </symbol>
+    </defs>
+</svg>
