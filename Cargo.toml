@@ -6,10 +6,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.53", features = ["derive"] }
-ratatui = "0.30.0"
-color-eyre = "0.6.5"
-ratatui-image = "10.0.2"
+clap = { version = "4", features = ["derive"] }
+ratatui = { version = "0.30", default-features = false, features = ["layout-cache", "crossterm"] }
+color-eyre = "0.6"
+# ratatui-image = "10"
 
 [profile.release]
 codegen-units = 1
