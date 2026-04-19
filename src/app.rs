@@ -4,9 +4,8 @@ use ratatui::{
     prelude::*,
     widgets::{Block, BorderType, Borders, Paragraph, Wrap},
 };
-use std::cmp::min;
-
-const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+use ratatui_image::Image;
+use std::{cmp::min, path::PathBuf};
 
 const NUM_TIERS: usize = 7; // FIXME: ...
 
@@ -16,9 +15,9 @@ pub enum Screen {
     UploadingImage,
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default)]
 pub struct Item<'a> {
-    label: Span<'a>,
+    label: Option<Image<'a>>,
 }
 
 #[derive(Default)]
@@ -29,7 +28,7 @@ pub struct Tier<'a> {
 
 pub struct App<'a> {
     pub current_screen: Screen,
-    quitting: bool,
+    running: bool,
     tiers: [Tier<'a>; NUM_TIERS],
 
     /// row_idx, item_idx
@@ -97,7 +96,7 @@ impl App<'_> {
         }
     }
 
-    pub fn new() -> Self {
+    pub fn new(images_path: PathBuf) -> Self {
         let mut tiers = [
             "S".bold().red(),
             "A".into(),
@@ -124,98 +123,21 @@ impl App<'_> {
         Self {
             tiers,
             current_screen: Screen::TierList,
-            quitting: false,
+            running: false,
             focus: (NUM_TIERS - 1, 0),
             grabbed: None,
         }
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        while !self.quitting {
-            terminal.draw(|f| self.render(f))?;
+        while self.running {
+            terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
         }
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut ratatui::Frame) {
-        let [header, body, footer] = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
-        .areas(frame.area());
-
-        let title_block = Block::new()
-            .title_style(Style::default().bold())
-            .title(format!(" {PKG_NAME} "))
-            .title_alignment(HorizontalAlignment::Center)
-            .borders(Borders::TOP | Borders::BOTTOM)
-            .border_type(BorderType::Thick)
-            .border_style(Style::default().fg(Color::LightBlue))
-            .borders(Borders::TOP);
-        frame.render_widget(
-            title_block
-                .clone()
-                .title(format!("{:?} | {:?}", self.focus, self.grabbed)),
-            footer,
-        );
-        frame.render_widget(title_block, header);
-
-        match self.current_screen {
-            Screen::StartMenu => {
-                let welcome_text = Text::from(Line::from(vec![
-                    "welcome to ".into(),
-                    PKG_NAME.bold(),
-                    ", a bloat-free, minimalist way to create tier lists".into(),
-                ]));
-                let welcome_paragraph = Paragraph::new(welcome_text)
-                    .wrap(Wrap { trim: true })
-                    .centered();
-
-                frame.render_widget(welcome_paragraph, body);
-            }
-            Screen::TierList => {
-                let rows = Layout::vertical([Constraint::Fill(1); NUM_TIERS]).split(body);
-
-                for ((row_idx, row_outer_area), tier) in rows.iter().enumerate().zip(&self.tiers) {
-                    let mut items = tier.items.clone();
-                    if let Some(grabbed) = &self.grabbed
-                        && self.focus.0 == row_idx
-                    {
-                        if self.focus.1 <= items.len() {
-                            items.insert(self.focus.1, grabbed.clone());
-                        } else {
-                            items.push(grabbed.clone());
-                        }
-                    }
-                    let areas = Layout::horizontal(
-                        [Constraint::Fill(1)]
-                            .iter()
-                            .chain(vec![Constraint::Length(20); items.len()].iter()),
-                    )
-                    // .flex(Flex::Start)
-                    .split(*row_outer_area);
-                    frame.render_widget(&tier.letter_span, areas[0]);
-
-                    for ((item_idx, item), area) in
-                        items.iter().enumerate().zip(areas.iter().skip(1))
-                    {
-                        if self.focus == (row_idx, item_idx) {
-                            if self.grabbed.is_some() {
-                                frame.render_widget(item.label.clone().black().on_yellow(), *area);
-                            } else {
-                                frame.render_widget(item.label.clone().on_dark_gray(), *area);
-                            }
-                        } else {
-                            frame.render_widget(&item.label, *area);
-                        }
-                    }
-                }
-            }
-            _ => todo!(),
-        };
-    }
+    fn draw(&self, frame: &mut ratatui::Frame) {}
 
     fn handle_events(&mut self) -> Result<()> {
         use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
@@ -265,6 +187,75 @@ impl App<'_> {
     }
 
     fn quit(&mut self) {
-        self.quitting = true;
+        self.running = true;
+    }
+}
+
+impl Widget for &App<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let mut title_block = Block::bordered()
+            .title_style(Style::default().bold())
+            .title(concat!(" ", env!("CARGO_PKG_NAME"), " "))
+            .title_alignment(HorizontalAlignment::Center)
+            .border_type(BorderType::Thick)
+            .border_style(Style::default().light_blue());
+
+        title_block.render(area, buf);
+
+        let inner_area = title_block.inner(area);
+
+        match self.current_screen {
+            Screen::StartMenu => {
+                let welcome_text = Text::from(Line::from(vec![
+                    "welcome to ".into(),
+                    env!("CARGO_PKG_NAME").bold(),
+                    ", a bloat-free, minimalist way to create tier lists".into(),
+                ]));
+                Paragraph::new(welcome_text)
+                    .wrap(Wrap { trim: true })
+                    .centered()
+                    .render(inner_area, buf);
+            }
+            Screen::TierList => {
+                let rows = inner_area.layout(&Layout::vertical([Constraint::Fill(1); NUM_TIERS]));
+
+                for ((row_idx, row_outer_area), tier) in
+                    rows.into_iter().enumerate().zip(self.tiers)
+                {
+                    let mut items = tier.items;
+                    if let Some(grabbed) = &self.grabbed
+                        && self.focus.0 == row_idx
+                    {
+                        if self.focus.1 <= items.len() {
+                            items.insert(self.focus.1, grabbed.clone());
+                        } else {
+                            items.push(grabbed.clone());
+                        }
+                    }
+                    let [letter_span_area, items_area] =
+                        row_outer_area.layout(&Layout::horizontal([
+                            Constraint::Length(1),
+                            Constraint::Fill(1),
+                        ]));
+
+                    tier.letter_span.render(letter_span_area, buf);
+
+                    for ((item_idx, item), area) in
+                        items.iter().enumerate().zip(areas.iter().skip(1))
+                    {
+                        if self.focus == (row_idx, item_idx) {
+                            if self.grabbed.is_some() {
+                                frame.render_widget(item.label.clone().black().on_yellow(), *area);
+                            } else {
+                                frame.render_widget(item.label.clone().on_dark_gray(), *area);
+                            }
+                        } else {
+                            frame.render_widget(&item.label, *area);
+                        }
+                    }
+                }
+            }
+            _ => todo!(),
+        };
     }
 }

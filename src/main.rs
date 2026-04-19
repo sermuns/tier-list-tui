@@ -1,16 +1,20 @@
-use clap::Parser;
-use color_eyre::Result;
-
 mod app;
 mod ui;
 
 use crate::app::App;
+use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser)]
-struct Args {}
+struct Args {
+    images_path: PathBuf,
+}
 
-fn main() -> Result<()> {
+fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
-    let mut app = App::new();
+
+    let args = Args::parse();
+
+    let mut app = App::new(args.images_path);
     ratatui::run(|terminal| app.run(terminal))
 }
