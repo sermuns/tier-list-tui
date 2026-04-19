@@ -1,7 +1,10 @@
 use clap::Parser;
 use color_eyre::Result;
 
-use tier_list_tui::app::App;
+mod app;
+mod ui;
+
+use crate::app::App;
 
 #[derive(Parser)]
 struct Args {}
