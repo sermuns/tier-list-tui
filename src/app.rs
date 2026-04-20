@@ -1,10 +1,10 @@
-use color_eyre::Result;
+use image::DynamicImage;
 use ratatui::{
     DefaultTerminal, crossterm,
     prelude::*,
-    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
+    widgets::{Block, BorderType, Paragraph, Wrap},
 };
-use ratatui_image::Image;
+use ratatui_image::picker::Picker;
 use std::{cmp::min, path::PathBuf};
 
 const NUM_TIERS: usize = 7; // FIXME: ...
@@ -16,14 +16,14 @@ pub enum Screen {
 }
 
 #[derive(Default)]
-pub struct Item<'a> {
-    label: Option<Image<'a>>,
+pub struct Item {
+    image: Option<DynamicImage>,
 }
 
 #[derive(Default)]
 pub struct Tier<'a> {
     letter_span: Span<'a>,
-    items: Vec<Item<'a>>,
+    items: Vec<Item>,
 }
 
 pub struct App<'a> {
@@ -34,7 +34,9 @@ pub struct App<'a> {
     /// row_idx, item_idx
     focus: (usize, usize),
 
-    grabbed: Option<Item<'a>>,
+    grabbed: Option<Item>,
+
+    picker: Picker,
 }
 
 enum InputMovement {
@@ -83,20 +85,20 @@ impl App<'_> {
     fn grab_or_place(&mut self) {
         let (row_idx, col_idx) = self.focus;
 
-        let items = &mut self.tiers[row_idx].items;
-        if let Some(grabbed) = &mut self.grabbed {
-            if col_idx < items.len() {
-                items.insert(col_idx, grabbed.clone());
-            } else {
-                items.push(grabbed.clone());
-            }
-            self.grabbed = None;
-        } else {
-            self.grabbed = Some(items.remove(col_idx));
-        }
+        // let items = &mut self.tiers[row_idx].items;
+        // if let Some(grabbed) = &mut self.grabbed {
+        //     if col_idx < items.len() {
+        //         items.insert(col_idx, grabbed.clone());
+        //     } else {
+        //         items.push(grabbed.clone());
+        //     }
+        //     self.grabbed = None;
+        // } else {
+        //     self.grabbed = Some(items.remove(col_idx));
+        // }
     }
 
-    pub fn new(images_path: PathBuf) -> Self {
+    pub fn new(images_path: PathBuf) -> color_eyre::Result<Self> {
         let mut tiers = [
             "S".bold().red(),
             "A".into(),
@@ -112,24 +114,26 @@ impl App<'_> {
         });
 
         // TODO:
-        tiers[NUM_TIERS - 1].items = std::fs::read_to_string("languages.txt")
-            .unwrap()
-            .lines()
-            .map(|line| Item {
-                label: line.to_owned().into(),
+        tiers[NUM_TIERS - 1].items = std::fs::read_dir(images_path)?
+            .filter_map(|entry| {
+                let path = entry.ok()?.path();
+                path.is_file().then_some(Item {
+                    image: image::ImageReader::open(path).ok()?.decode().ok(),
+                })
             })
             .collect();
 
-        Self {
+        Ok(Self {
             tiers,
             current_screen: Screen::TierList,
-            running: false,
+            running: true,
             focus: (NUM_TIERS - 1, 0),
             grabbed: None,
-        }
+            picker: Picker::from_query_stdio()?,
+        })
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> color_eyre::Result<()> {
         while self.running {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
@@ -137,9 +141,11 @@ impl App<'_> {
         Ok(())
     }
 
-    fn draw(&self, frame: &mut ratatui::Frame) {}
+    fn draw(&self, frame: &mut ratatui::Frame) {
+        frame.render_widget(self, frame.area());
+    }
 
-    fn handle_events(&mut self) -> Result<()> {
+    fn handle_events(&mut self) -> color_eyre::Result<()> {
         use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 
         let event = crossterm::event::read()?;
@@ -187,22 +193,20 @@ impl App<'_> {
     }
 
     fn quit(&mut self) {
-        self.running = true;
+        self.running = false;
     }
 }
 
 impl Widget for &App<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let mut title_block = Block::bordered()
+        let title_block = Block::bordered()
             .title_style(Style::default().bold())
             .title(concat!(" ", env!("CARGO_PKG_NAME"), " "))
-            .title_alignment(HorizontalAlignment::Center)
-            .border_type(BorderType::Thick)
-            .border_style(Style::default().light_blue());
+            .title_alignment(HorizontalAlignment::Center);
 
-        title_block.render(area, buf);
+        (&title_block).render(area, buf);
 
-        let inner_area = title_block.inner(area);
+        let area = title_block.inner(area);
 
         match self.current_screen {
             Screen::StartMenu => {
@@ -214,44 +218,58 @@ impl Widget for &App<'_> {
                 Paragraph::new(welcome_text)
                     .wrap(Wrap { trim: true })
                     .centered()
-                    .render(inner_area, buf);
+                    .render(area, buf);
             }
             Screen::TierList => {
-                let rows = inner_area.layout(&Layout::vertical([Constraint::Fill(1); NUM_TIERS]));
+                let tier_rows: [_; NUM_TIERS] =
+                    area.layout(&Layout::vertical([Constraint::Fill(1); NUM_TIERS]));
 
-                for ((row_idx, row_outer_area), tier) in
-                    rows.into_iter().enumerate().zip(self.tiers)
-                {
-                    let mut items = tier.items;
-                    if let Some(grabbed) = &self.grabbed
-                        && self.focus.0 == row_idx
-                    {
-                        if self.focus.1 <= items.len() {
-                            items.insert(self.focus.1, grabbed.clone());
-                        } else {
-                            items.push(grabbed.clone());
-                        }
-                    }
-                    let [letter_span_area, items_area] =
-                        row_outer_area.layout(&Layout::horizontal([
+                let max_items_in_row = self
+                    .tiers
+                    .iter()
+                    .map(|tier| tier.items.len())
+                    .max()
+                    .unwrap_or(0);
+
+                for ((row_index, row_area), tier) in tier_rows.iter().enumerate().zip(&self.tiers) {
+                    let [letter_span_area, outer_items_area] =
+                        row_area.layout(&Layout::horizontal([
                             Constraint::Length(1),
                             Constraint::Fill(1),
                         ]));
 
-                    tier.letter_span.render(letter_span_area, buf);
+                    (&tier.letter_span).render(letter_span_area, buf);
 
-                    for ((item_idx, item), area) in
-                        items.iter().enumerate().zip(areas.iter().skip(1))
+                    let item_areas =
+                        Layout::horizontal(vec![Constraint::Fill(1); max_items_in_row])
+                            .split(outer_items_area);
+
+                    for ((item_index, item), item_area) in
+                        tier.items.iter().enumerate().zip(item_areas.iter())
                     {
-                        if self.focus == (row_idx, item_idx) {
-                            if self.grabbed.is_some() {
-                                frame.render_widget(item.label.clone().black().on_yellow(), *area);
-                            } else {
-                                frame.render_widget(item.label.clone().on_dark_gray(), *area);
-                            }
-                        } else {
-                            frame.render_widget(&item.label, *area);
+                        if let Some(dyn_img) = &item.image {
+                            let image = self
+                                .picker
+                                .new_protocol(
+                                    dyn_img.clone(),
+                                    *item_area,
+                                    ratatui_image::Resize::Fit(None),
+                                )
+                                .unwrap();
+                            ratatui_image::Image::new(&image).render(*item_area, buf);
                         }
+                        // if self.focus == (row_index, item_index) {
+                        //     if self.grabbed.is_some() {
+                        //         frame.render_widget(
+                        //             item.label.clone().black().on_yellow(),
+                        //             *item_are,
+                        //         );
+                        //     } else {
+                        //         frame.render_widget(item.label.clone().on_dark_gray(), *item_are);
+                        //     }
+                        // } else {
+                        //     frame.render_widget(&item.label, *item_are);
+                        // }
                     }
                 }
             }

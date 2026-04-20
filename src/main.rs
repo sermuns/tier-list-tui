@@ -15,6 +15,7 @@ fn main() -> color_eyre::Result<()> {
 
     let args = Args::parse();
 
-    let mut app = App::new(args.images_path);
+    let mut app = App::new(args.images_path)?;
+
     ratatui::run(|terminal| app.run(terminal))
 }

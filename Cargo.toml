@@ -9,7 +9,8 @@ edition = "2024"
 clap = { version = "4", features = ["derive"] }
 ratatui = { version = "0.30", default-features = false, features = ["layout-cache", "crossterm"] }
 color-eyre = "0.6"
-ratatui-image = "10"
+ratatui-image = { version = "10" }
+image = "0.25"
 
 [profile.release]
 codegen-units = 1
