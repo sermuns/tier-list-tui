@@ -2,12 +2,14 @@ use image::DynamicImage;
 use ratatui::{
     DefaultTerminal, crossterm,
     prelude::*,
+    style::Styled,
     widgets::{Block, BorderType, Paragraph, Wrap},
 };
 use ratatui_image::picker::Picker;
 use std::{cmp::min, path::PathBuf};
 
-const NUM_TIERS: usize = 7; // FIXME: ...
+const TIERS: [&str; 7] = ["S", "A", "B", "C", "D", "F", " "];
+const NUM_TIERS: usize = TIERS.len();
 
 pub enum Screen {
     StartMenu,
@@ -99,19 +101,11 @@ impl App<'_> {
     }
 
     pub fn new(images_path: PathBuf) -> color_eyre::Result<Self> {
-        let mut tiers = [
-            "S".bold().red(),
-            "A".into(),
-            "B".into(),
-            "C".into(),
-            "D".into(),
-            "F".into(),
-            " ".into(),
-        ]
-        .map(|letter_span| Tier {
-            letter_span,
+        let mut tiers = TIERS.map(|letter_span| Tier {
+            letter_span: letter_span.into(),
             ..Default::default()
         });
+        tiers[0].letter_span = TIERS[0].red(); // shitty
 
         // TODO:
         tiers[NUM_TIERS - 1].items = std::fs::read_dir(images_path)?
@@ -248,15 +242,17 @@ impl Widget for &App<'_> {
                         tier.items.iter().enumerate().zip(item_areas.iter())
                     {
                         if let Some(dyn_img) = &item.image {
-                            let image = self
-                                .picker
-                                .new_protocol(
-                                    dyn_img.clone(),
-                                    *item_area,
-                                    ratatui_image::Resize::Fit(None),
-                                )
-                                .unwrap();
-                            ratatui_image::Image::new(&image).render(*item_area, buf);
+                            ratatui_image::Image::new(
+                                &self
+                                    .picker
+                                    .new_protocol(
+                                        dyn_img.clone(), // FIXME:
+                                        *item_area,
+                                        ratatui_image::Resize::Fit(None),
+                                    )
+                                    .unwrap(),
+                            )
+                            .render(*item_area, buf);
                         }
                         // if self.focus == (row_index, item_index) {
                         //     if self.grabbed.is_some() {
