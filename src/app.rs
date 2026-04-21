@@ -2,11 +2,10 @@ use image::DynamicImage;
 use ratatui::{
     DefaultTerminal, crossterm,
     prelude::*,
-    style::Styled,
-    widgets::{Block, BorderType, Paragraph, Wrap},
+    widgets::{Block, Paragraph, Wrap},
 };
 use ratatui_image::picker::Picker;
-use std::{cmp::min, path::PathBuf};
+use std::{cmp::min, path::PathBuf, time::Duration};
 
 const TIERS: [&str; 7] = ["S", "A", "B", "C", "D", "F", " "];
 const NUM_TIERS: usize = TIERS.len();
@@ -129,18 +128,18 @@ impl App<'_> {
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> color_eyre::Result<()> {
         while self.running {
-            terminal.draw(|frame| self.draw(frame))?;
-            self.handle_events()?;
+            terminal.draw(|frame| frame.render_widget(&*self, frame.area()))?;
+            self.handle_crossterm_event()?;
         }
         Ok(())
     }
 
-    fn draw(&self, frame: &mut ratatui::Frame) {
-        frame.render_widget(self, frame.area());
-    }
-
-    fn handle_events(&mut self) -> color_eyre::Result<()> {
+    fn handle_crossterm_event(&mut self) -> color_eyre::Result<()> {
         use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
+
+        if !crossterm::event::poll(Duration::from_secs(1))? {
+            return Ok(());
+        }
 
         let event = crossterm::event::read()?;
 
@@ -204,11 +203,11 @@ impl Widget for &App<'_> {
 
         match self.current_screen {
             Screen::StartMenu => {
-                let welcome_text = Text::from(Line::from(vec![
+                let welcome_text = Line::from(vec![
                     "welcome to ".into(),
                     env!("CARGO_PKG_NAME").bold(),
                     ", a bloat-free, minimalist way to create tier lists".into(),
-                ]));
+                ]);
                 Paragraph::new(welcome_text)
                     .wrap(Wrap { trim: true })
                     .centered()
